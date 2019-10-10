@@ -1,0 +1,8 @@
+*.txt
+*.cmake
+.vscode/
+bin/
+build/
+CMakeFiles/
+lib/
+libs/
