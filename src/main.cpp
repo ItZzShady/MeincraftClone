@@ -1,6 +1,11 @@
 #include <iostream>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -48,8 +53,10 @@ int main() {
         out vec4 color0;
         out vec2 Texcoord;
 
+        uniform mat4 MVP;
+
         void main() {
-            gl_Position = vec4(position, 0.0, 1.0); 
+            gl_Position = MVP * vec4(position, 0.0, 1.0); 
             color0 = color;
             Texcoord = texcoord;
         }
@@ -107,6 +114,20 @@ int main() {
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+
+    GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
+
+    glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
+
+    glm::mat4 View = glm::lookAt(
+        glm::vec3(4.0f, 3.0f, 10.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f)
+    );
+
+    glm::mat4 Model = glm::mat4(1.0f);
+    Model = glm::rotate(Model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
 
     const float vertices[] = {
     //  Position      Color                   TexCoords
@@ -182,6 +203,10 @@ int main() {
         /* Hier Rendern */
         glClear(GL_COLOR_BUFFER_BIT);
         
+        glUseProgram(shaderProgram);
+        glm::mat4 MVP = Projection * View * Model;
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, glm::value_ptr(MVP));
+
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         /* Tausche den front und back Buffer */
