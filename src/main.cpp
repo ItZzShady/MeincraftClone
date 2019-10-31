@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <iostream>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -32,8 +32,8 @@ int main() {
         return -1;
     };
     
-    unsigned int shaderProgram = glCreateProgram();
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    unsigned int shaderProgram  = glCreateProgram();
+    unsigned int vertexShader   = glCreateShader(GL_VERTEX_SHADER);
     unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 
     const char* vertexSource = R"glsl( 
@@ -52,11 +52,11 @@ int main() {
     const char* fragmentSource = R"glsl( 
         #version 410
 
-        out vec4 fragmentColor;
+        out vec4 outColor;
         in vec4 color0;
 
         void main() {
-            fragmentColor = color0; 
+            outColor = vec4(color0); 
         }
     )glsl";
 
@@ -75,6 +75,23 @@ int main() {
     glBindAttribLocation(shaderProgram, COLOR_ATTRIB_LOC, "color");
 
     glLinkProgram(shaderProgram);
+
+    GLint info;
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &info);
+    if (info == GL_FALSE) {
+        char infolog[1024];
+        glGetShaderInfoLog(vertexShader, 1024, NULL, infolog);
+        std::cout << "The vertex shader failed to compile with the error: " << infolog << std::endl;
+    }
+
+    info = 0;
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &info);
+    if (info == GL_FALSE) {
+        char infolog[1024];
+        glGetShaderInfoLog(fragmentShader, 1024, NULL, infolog);
+        std::cout << "The fragment shader failed to compile with the error: " << infolog << std::endl;
+    }
+
     glValidateProgram(shaderProgram);
     glUseProgram(shaderProgram);
 
@@ -84,7 +101,7 @@ int main() {
     // now on to buffers
     enum {POSITION, COLOR, NUM_BUFFERS };
 
-    unsigned int vao, vbo[NUM_BUFFERS];
+    GLuint vao, vbo[NUM_BUFFERS], ebo, texture;
 
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -92,16 +109,16 @@ int main() {
     glGenBuffers(NUM_BUFFERS, vbo);
 
     const float vertices[] = {
-        -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // Top-left
-         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // Top-right
-         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // Bottom-right
-        -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, // Bottom-left
+    //  Position      Color                   TexCoords
+        -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, 1.0f, // Top-left
+         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 1.0f, // Top-right
+         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f, // Bottom-right
+        -0.5f, -0.5f, 1.0f, 0.0f, 1.0f, 1.0f  // Bottom-left
     };
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo[POSITION]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    GLuint ebo;
     glGenBuffers(1, &ebo);
 
     GLuint elements[] = {
@@ -113,10 +130,10 @@ int main() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(POSITION_ATTRIB_LOC);
-    glVertexAttribPointer(POSITION_ATTRIB_LOC, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)0);
+    glVertexAttribPointer(POSITION_ATTRIB_LOC, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)0);
 
     glEnableVertexAttribArray(COLOR_ATTRIB_LOC);
-    glVertexAttribPointer(COLOR_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 5, (void*)(sizeof(GLfloat) * 2));
+    glVertexAttribPointer(COLOR_ATTRIB_LOC, 4, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)(sizeof(float) * 2));
     
     glClearColor(0.1, 0.1, 0.1, 1.0);
     /* Loop unitl the user closes the window */
