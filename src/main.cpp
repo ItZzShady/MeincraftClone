@@ -7,6 +7,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Texture.h"
+#include "Camera.h"
 
 int main() {
 
@@ -31,6 +32,8 @@ int main() {
 
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
@@ -120,11 +123,7 @@ int main() {
 
     glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
 
-    glm::mat4 View = glm::lookAt(
-        glm::vec3(4.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 1.0f, 0.0f)
-    );
+    Camera camera;
 
     glm::mat4 Model = glm::mat4(1.0f);
     //Model = glm::rotate(Model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -221,19 +220,25 @@ int main() {
     glEnableVertexAttribArray(TEXCOORD_ATTRIB_LOC);
     glVertexAttribPointer(TEXCOORD_ATTRIB_LOC, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)(sizeof(float) * 6));
     
-    glClearColor(0.1, 0.1, 0.1, 1.0);
-    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-    /* Loop unitl the user closes the window */
-    while(!glfwWindowShouldClose(window)) {
+    glClearColor(0.133, 0.133, 0.133, 1.0);
+    //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
+    while(!glfwWindowShouldClose(window)) {
+        static double lastTime = glfwGetTime();
+        double currentTime = glfwGetTime();
+        GLfloat deltaTime = float(currentTime - lastTime);
+     
         /* Poll for and process events */
         glfwPollEvents();
 
         /* Hier Rendern */
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+            
         glUseProgram(shaderProgram);
-        glm::mat4 MVP = Projection * View * Model;
+
+        camera.update(window, deltaTime);
+
+        glm::mat4 MVP = Projection * camera.getView() * Model;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, glm::value_ptr(MVP));
 
         //glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -241,6 +246,7 @@ int main() {
 
         /* Tausche den front und back Buffer */
         glfwSwapBuffers(window);
+        lastTime = currentTime;
     }
 
     glfwTerminate();
