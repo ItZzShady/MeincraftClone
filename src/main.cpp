@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -10,13 +11,12 @@
 #include "Log.h"
 #include "Texture.h"
 #include "Camera.h"
-#include "ModelLoader.h"
+#include "model/Vertex.h"
+#include "model/Mesh.h"
 
 int main() {
 
     GLFWwindow* window;
-
-    LOG::Print("Failed to initialize glfw", ERROR);
 
     if (!glfwInit()) {
         LOG::Print("Failed to initialize glfw", ERROR);
@@ -29,7 +29,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-    window = glfwCreateWindow(1024, 768, "Minecraft Clone", nullptr, nullptr);
+    window = glfwCreateWindow(1024, 768, "Terrain", nullptr, nullptr);
     if(!window) {
         LOG::Print("Failed to create glfw window", ERROR);
         glfwTerminate();
@@ -79,9 +79,10 @@ int main() {
         uniform sampler2D tex;
 
         void main() {
-            outColor = texture(tex, Texcoord); 
+            outColor = vec4(1.0, 1.0, 1.0, 1.0);
         }
     )glsl";
+    //texture(tex, Texcoord); 
 
     enum { POSITION_ATTRIB_LOC, TEXCOORD_ATTRIB_LOC };
 
@@ -124,125 +125,47 @@ int main() {
 
     GLuint MatrixID = glGetUniformLocation(shaderProgram, "MVP");
 
-    glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
+    glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 1000.0f);
 
     Camera camera;
 
     glm::mat4 Transform = glm::mat4(1.0f);
     //Model = glm::rotate(Model, glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
+    Mesh terrain;
+    std::vector<Vertex> vertices;
+    std::vector<int> indices; 
 
-    GLfloat vertices[] = {
-        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-
-        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-
-        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-
-         0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-
-        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f
-    };
-
-    /*GLuint elements[] = {
-        0, 1, 2,
-        2, 3, 0,
-        4, 5, 6,
-        6, 7, 4,
-        8, 9, 10,
-        10, 11, 8,
-        12, 13, 14,
-        14, 15, 12,
-        16, 17, 18,
-        18, 19, 16,
-        20, 21, 22,
-        22, 23, 20,
-    };*/
-
-    float pixels[] = {
-        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f
-    };
-
-    std::vector<glm::vec3> indices;
-    std::vector<glm::vec2> uvs;
-    std::vector<glm::vec3> normals;
-
-    Model model;
-    model.load("cube.obj", indices, uvs, normals);
-
-    for (int i = 0; i < indices.size(); i++) {
-        //std::cout << "X: " << indices[i].x << " Y: " << indices[i].y << " Z: " << indices[i].z << std::endl;
+    for (int x = 0; x < 16; x++) {
+        for (int z = 0; z < 16; z++) {
+            int offset = (x * 16) + z;
+            vertices.push_back(Vertex(x * 1, 0, z * 1));
+        }
     }
 
-    for (int i = 0; i < uvs.size(); i++) {
-        std::cout << i << ". UV - X: " << uvs[i].x << " Y: " << uvs[i].y << std::endl;
+    for (int x = 0; x < 16 - 1; x++) {
+        for (int z = 0; z < 16 - 1; z++) {
+            int a = (x       * (16)) + z;
+            int b = ((x + 1) * (16)) + z;
+            int c = ((x + 1) * (16)) + (z + 1);
+            int d = (x       * (16)) + (z + 1);
+
+            indices.push_back(c);
+            indices.push_back(b);
+            indices.push_back(a);
+
+            indices.push_back(a);
+            indices.push_back(d);
+            indices.push_back(c);
+        }
     }
 
-    // now on to buffers
-    enum {POSITION, UV, NUM_BUFFERS };
-
-    GLuint vao, vbo[NUM_BUFFERS], ebo;
-
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    glGenBuffers(NUM_BUFFERS, vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[POSITION]);
-    glBufferData(GL_ARRAY_BUFFER, indices.size() * sizeof(glm::vec3), &indices[0], GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[UV]);
-    glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
-
-    /*glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, elements.size() * sizeof(int), &elements[0], GL_STATIC_DRAW);*/
+    terrain.setVertices(vertices);
+    terrain.setIndices(indices);
 
     Texture sample("sample.png");
-
-    glEnableVertexAttribArray(POSITION_ATTRIB_LOC);
-    glVertexAttribPointer(POSITION_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-    /*glEnableVertexAttribArray(COLOR_ATTRIB_LOC);
-    glVertexAttribPointer(COLOR_ATTRIB_LOC, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)(sizeof(float) * 3));*/
-
-    glEnableVertexAttribArray(TEXCOORD_ATTRIB_LOC);
-    glVertexAttribPointer(TEXCOORD_ATTRIB_LOC, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
     
     glClearColor(0.133, 0.133, 0.133, 1.0);
-    //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
     while(!glfwWindowShouldClose(window)) {
         static double lastTime = glfwGetTime();
@@ -262,36 +185,7 @@ int main() {
         glm::mat4 MVP = Projection * camera.getView() * Transform;
         glUniformMatrix4fv(MatrixID, 1, GL_FALSE, glm::value_ptr(MVP));
 
-        glBindVertexArray(vao);
-        // 1rst attribute buffer : vertices
-		glEnableVertexAttribArray(POSITION);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[POSITION]);
-		glVertexAttribPointer(
-			0,                  // attribute
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			0,                  // stride
-			(void*)0            // array buffer offset
-		);
-
-		// 2nd attribute buffer : UVs
-		glEnableVertexAttribArray(UV);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[UV]);
-		glVertexAttribPointer(
-			1,                                // attribute
-			2,                                // size
-			GL_FLOAT,                         // type
-			GL_FALSE,                         // normalized?
-			0,                                // stride
-			(void*)0                          // array buffer offset
-		);
-
-        //glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-        glDrawArrays(GL_TRIANGLES, 0, indices.size());
-
-        glDisableVertexAttribArray(POSITION);
-		glDisableVertexAttribArray(UV);
+        terrain.draw();
 
         /* Tausche den front und back Buffer */
         glfwSwapBuffers(window);
